@@ -1,5 +1,5 @@
 # BankAccount
-Backend - Bank account opening
+Backend - Bank account opening API
 
 To start your Phoenix server:
 
