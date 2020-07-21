@@ -16,6 +16,8 @@ defmodule BankAccount.DataCase do
 
   use ExUnit.CaseTemplate
 
+  alias Ecto.Adapters.SQL.Sandbox
+
   using do
     quote do
       alias BankAccount.Repo
@@ -28,10 +30,10 @@ defmodule BankAccount.DataCase do
   end
 
   setup tags do
-    :ok = Ecto.Adapters.SQL.Sandbox.checkout(BankAccount.Repo)
+    :ok = Sandbox.checkout(BankAccount.Repo)
 
     unless tags[:async] do
-      Ecto.Adapters.SQL.Sandbox.mode(BankAccount.Repo, {:shared, self()})
+      Sandbox.mode(BankAccount.Repo, {:shared, self()})
     end
 
     :ok
