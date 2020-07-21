@@ -17,6 +17,8 @@ defmodule BankAccountWeb.ChannelCase do
 
   use ExUnit.CaseTemplate
 
+  alias Ecto.Adapters.SQL.Sandbox
+
   using do
     quote do
       # Import conveniences for testing with channels
@@ -29,10 +31,10 @@ defmodule BankAccountWeb.ChannelCase do
   end
 
   setup tags do
-    :ok = Ecto.Adapters.SQL.Sandbox.checkout(BankAccount.Repo)
+    :ok = Sandbox.checkout(BankAccount.Repo)
 
     unless tags[:async] do
-      Ecto.Adapters.SQL.Sandbox.mode(BankAccount.Repo, {:shared, self()})
+      Sandbox.mode(BankAccount.Repo, {:shared, self()})
     end
 
     :ok
