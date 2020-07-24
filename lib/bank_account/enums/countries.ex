@@ -1,4 +1,4 @@
-defmodule BankAccount.Lists.Countries do
+defmodule BankAccount.Enums.Countries do
   @moduledoc """
   List of Countries
   """
