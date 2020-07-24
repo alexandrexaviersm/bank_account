@@ -1,4 +1,6 @@
 # BankAccount
+![actions](https://github.com/alexandrexaviersm/bank_account/workflows/actions/badge.svg)
+
 Backend - Bank account opening API
 
 To start your Phoenix server:
@@ -19,4 +21,4 @@ Ready to run in production? Please [check our deployment guides](https://hexdocs
   * Forum: https://elixirforum.com/c/phoenix-forum
   * Source: https://github.com/phoenixframework/phoenix
 
-![actions](https://github.com/alexandrexaviersm/bank_account/workflows/actions/badge.svg)
+
