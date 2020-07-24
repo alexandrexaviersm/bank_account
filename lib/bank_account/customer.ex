@@ -7,6 +7,7 @@ defmodule BankAccount.Customer do
 
   alias BankAccount.{Account, Repo}
   alias BankAccount.Enums.GenderType
+  alias BankAccount.Lists.Countries
   alias BankAccount.UserEncryption.Security.Utils, as: UserEncryption
   alias Ecto.Changeset
 
@@ -53,6 +54,15 @@ defmodule BankAccount.Customer do
     struct
     |> cast(attrs, @input_fields)
     |> validate_required([:id, :unique_salt])
+    |> validate_length(:city, min: 3, max: 50)
+    |> validate_length(:country, is: 2)
+    |> validate_length(:state, is: 2)
+    |> validate_length(:referral_code, is: 8)
+    |> validate_inclusion(
+      :country,
+      Enum.map(Countries.list_countries(), fn %{code: code} -> code end)
+    )
+    |> validate_inclusion(:gender, GenderType.values())
     |> validate_cpf(attrs)
     |> put_encrypted_name(attrs)
     |> put_encrypted_birth_date(attrs)
