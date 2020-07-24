@@ -5,7 +5,7 @@ defmodule BankAccount.Customer do
   use Ecto.Schema
   import Ecto.Changeset
 
-  alias BankAccount.{Account, Repo}
+  alias BankAccount.Account
   alias BankAccount.Enums.GenderType
   alias BankAccount.Lists.Countries
   alias BankAccount.UserEncryption.Security.Utils, as: UserEncryption
@@ -18,7 +18,7 @@ defmodule BankAccount.Customer do
           city: String.t(),
           country: String.t(),
           encrypted_birth_date: String.t(),
-          encrypted_cpf: String.t(),
+          cpf_hash: String.t(),
           encrypted_email: String.t(),
           encrypted_name: String.t(),
           encrypted_name_to_be_shared: String.t(),
@@ -33,8 +33,8 @@ defmodule BankAccount.Customer do
   schema "customers" do
     field :city, :string
     field :country, :string
+    field :cpf_hash, :string
     field :encrypted_birth_date, :string
-    field :encrypted_cpf, :string
     field :encrypted_email, :string
     field :encrypted_name, :string
     field :encrypted_name_to_be_shared, :string
@@ -65,11 +65,10 @@ defmodule BankAccount.Customer do
     |> validate_inclusion(:gender, GenderType.values())
     |> validate_cpf(attrs)
     |> validate_name(attrs)
+    |> put_cpf(attrs)
     |> put_encrypted_name(attrs)
     |> put_encrypted_birth_date(attrs)
-    |> put_encrypted_cpf(attrs)
     |> put_encrypted_email(attrs)
-    |> Repo.insert()
   end
 
   defp validate_cpf(%Changeset{} = changeset, %{cpf: cpf}) when is_atom(cpf) do
@@ -128,17 +127,15 @@ defmodule BankAccount.Customer do
 
   defp put_encrypted_birth_date(%Changeset{} = changeset, _attrs), do: changeset
 
-  defp put_encrypted_cpf(
-         %Changeset{valid?: true, changes: %{id: id, unique_salt: salt}} = changeset,
+  defp put_cpf(
+         %Changeset{valid?: true} = changeset,
          %{cpf: cpf}
        )
        when is_binary(cpf) do
-    key = UserEncryption.generate_secret_key(id, cpf, salt)
-
-    put_change(changeset, :encrypted_cpf, UserEncryption.encrypt(cpf, key))
+    put_change(changeset, :cpf_hash, Bcrypt.hash_pwd_salt(cpf))
   end
 
-  defp put_encrypted_cpf(%Changeset{} = changeset, _attrs), do: changeset
+  defp put_cpf(%Changeset{} = changeset, _attrs), do: changeset
 
   defp put_encrypted_email(
          %Changeset{valid?: true, changes: %{id: id, unique_salt: salt}} = changeset,
