@@ -3,7 +3,7 @@ defmodule BankAccount.CreateCustomer do
   Creating a new customer
   """
 
-  alias BankAccount.Customer
+  alias BankAccount.{Customer, Repo}
   alias BankAccount.UserEncryption.Security.Utils, as: UserEncryption
 
   # verifica se já existe registro com o CPF informado
@@ -26,11 +26,22 @@ defmodule BankAccount.CreateCustomer do
   # # AccountOpening Subscribe Customer Created
 
   def run(params) do
-    attrs = %{id: Ecto.UUID.generate(), unique_salt: UserEncryption.generate_unique_salt()}
+    Repo.all(Customer)
+    |> Enum.find(fn customer ->
+      Bcrypt.verify_pass(params[:cpf], customer.cpf_hash)
+    end)
+    |> case do
+      %Customer{} = _customer ->
+        {:error, :cpf_already_exists}
 
-    merged_params = Map.merge(params, attrs)
+      nil ->
+        attrs = %{id: Ecto.UUID.generate(), unique_salt: UserEncryption.generate_unique_salt()}
 
-    %Customer{}
-    |> Customer.create_changeset(merged_params)
+        merged_params = Map.merge(params, attrs)
+
+        %Customer{}
+        |> Customer.create_changeset(merged_params)
+        |> Repo.insert()
+    end
   end
 end

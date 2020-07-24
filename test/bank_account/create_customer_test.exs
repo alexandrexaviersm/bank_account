@@ -17,13 +17,13 @@ defmodule BankAccount.CreateCustomerTest do
       assert customer.referral_code == "12345678"
       assert customer.encrypted_name
       assert customer.encrypted_email
-      assert customer.encrypted_cpf
+      assert customer.cpf_hash
       assert customer.encrypted_birth_date
 
       # sensitive data cannot be save in plain text
       refute customer.encrypted_name == "Foo"
       refute customer.encrypted_email == "foo@bar.com"
-      refute customer.encrypted_cpf == cpf
+      refute customer.cpf_hash == cpf
       refute customer.encrypted_birth_date == "1990-01-01"
     end
 
@@ -134,6 +134,21 @@ defmodule BankAccount.CreateCustomerTest do
 
       assert {:error, %Changeset{} = changeset} = CreateCustomer.run(invalid_params)
       assert "is invalid" in errors_on(changeset).gender
+    end
+  end
+
+  describe "upsert customer" do
+    test "returns new created customer if the informed cpf isn't registered in database", %{
+      params: params
+    } do
+      assert {:ok, %Customer{} = customer} = CreateCustomer.run(params)
+    end
+
+    test "returns error if the informed cpf is already registered in database", %{
+      params: params
+    } do
+      assert {:ok, %Customer{} = customer} = CreateCustomer.run(params)
+      assert {:error, :cpf_already_exists} = CreateCustomer.run(params)
     end
   end
 
