@@ -4,6 +4,8 @@ defmodule BankAccount.Repo.Migrations.CreateCustomers do
   alias BankAccount.Enums.GenderType
 
   def change do
+    GenderType.create_type()
+
     create table(:customers, primary_key: false) do
       add :id, :uuid, primary_key: true
       add :city, :string
