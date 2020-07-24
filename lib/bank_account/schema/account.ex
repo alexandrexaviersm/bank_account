@@ -5,8 +5,8 @@ defmodule BankAccount.Schema.Account do
   use BankAccount.Schema
   import Ecto.Changeset
 
-  alias BankAccount.Schema.Customer
   alias BankAccount.Enums.AccountStatus
+  alias BankAccount.Schema.Customer
 
   @type t :: %__MODULE__{
           id: :uuid,

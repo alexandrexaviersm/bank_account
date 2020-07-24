@@ -5,9 +5,9 @@ defmodule BankAccount.Schema.Customer do
   use BankAccount.Schema
   import Ecto.Changeset
 
-  alias BankAccount.Schema.Account
-  alias BankAccount.Enums.GenderType
   alias BankAccount.Enums.Countries
+  alias BankAccount.Enums.GenderType
+  alias BankAccount.Schema.Account
   alias BankAccount.UserEncryption.Security.Utils, as: UserEncryption
   alias Ecto.Changeset
 

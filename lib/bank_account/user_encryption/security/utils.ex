@@ -20,6 +20,12 @@ defmodule BankAccount.UserEncryption.Security.Utils do
     |> String.reverse()
   end
 
+  def generate_referral_code do
+    :crypto.strong_rand_bytes(16)
+    |> :base64.encode()
+    |> String.slice(0, 8)
+  end
+
   def encrypt(val, key) do
     iv = :crypto.strong_rand_bytes(16)
 

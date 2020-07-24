@@ -3,9 +3,10 @@ defmodule BankAccount.RegisterCustomer do
   Creating a new customer
   """
 
+  alias BankAccount.AccountOpening
   alias BankAccount.Repo
-  alias BankAccount.UserEncryption.Security.Utils, as: UserEncryption
   alias BankAccount.Schema.Customer
+  alias BankAccount.UserEncryption.Security.Utils, as: UserEncryption
   alias Ecto.Multi
 
   # Verifica se todos os campos foram preenchidos
@@ -14,11 +15,7 @@ defmodule BankAccount.RegisterCustomer do
   # # O sistema informa uma mensagem de sucesso, juntamente com o código
   # # de 8 dígitos previamente criado
   # else
-  # # O sistema informa uma mensagem de sucesso, retorna os dados fornecidos e o stautus pendent
-
-  ## Event-driven architectures
-  # # Publish Event: Customer Created
-  # # AccountOpening Subscribe Customer Created
+  # # O sistema informa uma mensagem de sucesso, retorna o stautus pendent
 
   def run(params) do
     customer =
@@ -27,19 +24,35 @@ defmodule BankAccount.RegisterCustomer do
         Bcrypt.verify_pass(params[:cpf], customer.cpf_hash)
       end)
 
-    result =
-      case customer do
-        %Customer{} = customer ->
-          update_customer(customer, params)
+    case customer do
+      %Customer{} = customer ->
+        update_customer(customer, params)
 
-        nil ->
-          create_customer(params)
-      end
+      nil ->
+        create_customer(params)
+    end
   end
 
   defp update_customer(customer, params) do
-    Customer.update_changeset(customer, params)
-    |> Repo.update()
+    Multi.new()
+    |> Multi.update(:customer, Customer.update_changeset(customer, params))
+    |> Multi.run(:account_opening, fn _repo, %{customer: customer} ->
+      customer_account = Repo.preload(customer, :account)
+
+      AccountOpening.run(customer, customer_account.account)
+    end)
+    |> Repo.transaction()
+    |> case do
+      {:ok,
+       %{
+         customer: customer,
+         account_opening: account
+       }} ->
+        {:ok, {customer, account}}
+
+      {:error, _failed_operation, failed_value, _changes} ->
+        {:error, failed_value}
+    end
   end
 
   defp create_customer(params) do
@@ -52,9 +65,16 @@ defmodule BankAccount.RegisterCustomer do
     |> Multi.insert(:account, fn %{customer: customer} ->
       Ecto.build_assoc(customer, :account)
     end)
+    |> Multi.run(:account_opening, fn _repo, %{customer: customer, account: account} ->
+      AccountOpening.run(customer, account)
+    end)
     |> Repo.transaction()
     |> case do
-      {:ok, %{customer: customer, account: account}} ->
+      {:ok,
+       %{
+         customer: customer,
+         account_opening: account
+       }} ->
         {:ok, {customer, account}}
 
       {:error, _failed_operation, failed_value, _changes} ->

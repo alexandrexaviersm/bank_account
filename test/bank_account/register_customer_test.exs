@@ -34,11 +34,23 @@ defmodule BankAccount.RegisterCustomerTest do
       assert customer.unique_salt
     end
 
-    test "returns structs an associated customer account with status pending when the params are valid",
+    test "returns an associated customer account with status complete when the params are completed",
          %{params: params} do
       assert {:ok, {%Customer{} = customer, %Account{} = account}} = RegisterCustomer.run(params)
       assert account.customer_id == customer.id
+      assert account.status == :complete
+      assert account.referral_code_to_be_shared
+    end
+
+    test "returns an associated customer account with status pendind when the params are incompleted" do
+      cpf = CPF.generate() |> CPF.format()
+      params = %{cpf: cpf}
+
+      assert {:ok, {%Customer{} = customer, %Account{} = account}} = RegisterCustomer.run(params)
+
+      assert account.customer_id == customer.id
       assert account.status == :pending
+      refute account.referral_code_to_be_shared
     end
 
     test "returns a struct when only the cpf is passed" do
@@ -152,6 +164,7 @@ defmodule BankAccount.RegisterCustomerTest do
       assert {:ok, {%Customer{} = customer, %Account{} = account}} = RegisterCustomer.run(params)
     end
 
+    # TODO: don't update a completed customer
     test "returns a updated customer if the informed cpf is already registered in database", %{
       params: params
     } do
@@ -172,7 +185,9 @@ defmodule BankAccount.RegisterCustomerTest do
           referral_code: "87654321"
         })
 
-      assert {:ok, %Customer{} = updated_customer} = RegisterCustomer.run(updated_params)
+      assert {:ok, {%Customer{} = updated_customer, %Account{} = account}} =
+               RegisterCustomer.run(updated_params)
+
       assert updated_customer.city == "Toronto"
       assert updated_customer.country == "CA"
       assert updated_customer.state == "ON"
