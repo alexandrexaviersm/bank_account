@@ -1,14 +1,15 @@
-defmodule BankAccount.CreateCustomerTest do
+defmodule BankAccount.RegisterCustomerTest do
   use BankAccount.DataCase, async: true
 
-  alias BankAccount.{CreateCustomer, Customer}
+  alias BankAccount.RegisterCustomer
+  alias BankAccount.Schema.{Account, Customer}
   alias Ecto.Changeset
 
   setup :create_customer_params
 
   describe "run/1" do
-    test "returns a struct when the params are valid", %{params: %{cpf: cpf} = params} do
-      assert {:ok, %Customer{} = customer} = CreateCustomer.run(params)
+    test "returns structs when the params are valid", %{params: %{cpf: cpf} = params} do
+      assert {:ok, {%Customer{} = customer, %Account{} = account}} = RegisterCustomer.run(params)
 
       assert customer.city == "Mirassol"
       assert customer.country == "BR"
@@ -28,43 +29,50 @@ defmodule BankAccount.CreateCustomerTest do
     end
 
     test "should create a salt hash for customer", %{params: params} do
-      assert {:ok, %Customer{} = customer} = CreateCustomer.run(params)
+      assert {:ok, {%Customer{} = customer, %Account{} = account}} = RegisterCustomer.run(params)
 
       assert customer.unique_salt
+    end
+
+    test "returns structs an associated customer account with status pending when the params are valid",
+         %{params: params} do
+      assert {:ok, {%Customer{} = customer, %Account{} = account}} = RegisterCustomer.run(params)
+      assert account.customer_id == customer.id
+      assert account.status == :pending
     end
 
     test "returns a struct when only the cpf is passed" do
       cpf = CPF.generate() |> CPF.format()
       params = %{cpf: cpf}
 
-      assert {:ok, %Customer{} = customer} = CreateCustomer.run(params)
+      assert {:ok, {%Customer{} = customer, %Account{} = account}} = RegisterCustomer.run(params)
     end
 
     test "returns error when cpf is missing", %{params: params} do
       invalid_params = Map.drop(params, [:cpf])
 
-      assert {:error, %Changeset{} = changeset} = CreateCustomer.run(invalid_params)
+      assert {:error, %Changeset{} = changeset} = RegisterCustomer.run(invalid_params)
       assert "can't be blank" in errors_on(changeset).cpf
     end
 
     test "returns error when cpf is invalid", %{params: params} do
       invalid_params = %{params | cpf: ""}
 
-      assert {:error, %Changeset{} = changeset} = CreateCustomer.run(invalid_params)
+      assert {:error, %Changeset{} = changeset} = RegisterCustomer.run(invalid_params)
       assert "is invalid" in errors_on(changeset).cpf
     end
 
     test "returns error when name lenght is bigger than 100 characters", %{params: params} do
       invalid_params = %{params | name: String.duplicate("a", 101)}
 
-      assert {:error, %Changeset{} = changeset} = CreateCustomer.run(invalid_params)
+      assert {:error, %Changeset{} = changeset} = RegisterCustomer.run(invalid_params)
       assert "should be at most 100 character(s)" in errors_on(changeset).name
     end
 
     test "returns error when name lenght is less than 3 characters", %{params: params} do
       invalid_params = %{params | name: "aa"}
 
-      assert {:error, %Changeset{} = changeset} = CreateCustomer.run(invalid_params)
+      assert {:error, %Changeset{} = changeset} = RegisterCustomer.run(invalid_params)
       assert "should be at least 3 character(s)" in errors_on(changeset).name
     end
 
@@ -72,7 +80,7 @@ defmodule BankAccount.CreateCustomerTest do
       for invalid_name <- [nil, true, 123, 1.1, %{}, [], {}] do
         invalid_params = %{params | name: invalid_name}
 
-        assert {:error, %Changeset{} = changeset} = CreateCustomer.run(invalid_params)
+        assert {:error, %Changeset{} = changeset} = RegisterCustomer.run(invalid_params)
         assert "is invalid" in errors_on(changeset).name
       end
     end
@@ -80,14 +88,14 @@ defmodule BankAccount.CreateCustomerTest do
     test "returns error when city name is bigger than 50 characters", %{params: params} do
       invalid_params = %{params | city: String.duplicate("a", 51)}
 
-      assert {:error, %Changeset{} = changeset} = CreateCustomer.run(invalid_params)
+      assert {:error, %Changeset{} = changeset} = RegisterCustomer.run(invalid_params)
       assert "should be at most 50 character(s)" in errors_on(changeset).city
     end
 
     test "returns error when city name is less than 3 characters", %{params: params} do
       invalid_params = %{params | city: "aa"}
 
-      assert {:error, %Changeset{} = changeset} = CreateCustomer.run(invalid_params)
+      assert {:error, %Changeset{} = changeset} = RegisterCustomer.run(invalid_params)
       assert "should be at least 3 character(s)" in errors_on(changeset).city
     end
 
@@ -96,7 +104,7 @@ defmodule BankAccount.CreateCustomerTest do
     } do
       invalid_params = %{params | country: "United States"}
 
-      assert {:error, %Changeset{} = changeset} = CreateCustomer.run(invalid_params)
+      assert {:error, %Changeset{} = changeset} = RegisterCustomer.run(invalid_params)
       assert "should be 2 character(s)" in errors_on(changeset).country
     end
 
@@ -105,7 +113,7 @@ defmodule BankAccount.CreateCustomerTest do
     } do
       invalid_params = %{params | country: "AA"}
 
-      assert {:error, %Changeset{} = changeset} = CreateCustomer.run(invalid_params)
+      assert {:error, %Changeset{} = changeset} = RegisterCustomer.run(invalid_params)
       assert "is invalid" in errors_on(changeset).country
     end
 
@@ -114,7 +122,7 @@ defmodule BankAccount.CreateCustomerTest do
     } do
       invalid_params = %{params | state: "sao paulo"}
 
-      assert {:error, %Changeset{} = changeset} = CreateCustomer.run(invalid_params)
+      assert {:error, %Changeset{} = changeset} = RegisterCustomer.run(invalid_params)
       assert "should be 2 character(s)" in errors_on(changeset).state
     end
 
@@ -123,7 +131,7 @@ defmodule BankAccount.CreateCustomerTest do
     } do
       invalid_params = %{params | referral_code: "123456789"}
 
-      assert {:error, %Changeset{} = changeset} = CreateCustomer.run(invalid_params)
+      assert {:error, %Changeset{} = changeset} = RegisterCustomer.run(invalid_params)
       assert "should be 8 character(s)" in errors_on(changeset).referral_code
     end
 
@@ -132,7 +140,7 @@ defmodule BankAccount.CreateCustomerTest do
     } do
       invalid_params = %{params | gender: "invalid_value"}
 
-      assert {:error, %Changeset{} = changeset} = CreateCustomer.run(invalid_params)
+      assert {:error, %Changeset{} = changeset} = RegisterCustomer.run(invalid_params)
       assert "is invalid" in errors_on(changeset).gender
     end
   end
@@ -141,14 +149,35 @@ defmodule BankAccount.CreateCustomerTest do
     test "returns new created customer if the informed cpf isn't registered in database", %{
       params: params
     } do
-      assert {:ok, %Customer{} = customer} = CreateCustomer.run(params)
+      assert {:ok, {%Customer{} = customer, %Account{} = account}} = RegisterCustomer.run(params)
     end
 
-    test "returns error if the informed cpf is already registered in database", %{
+    test "returns a updated customer if the informed cpf is already registered in database", %{
       params: params
     } do
-      assert {:ok, %Customer{} = customer} = CreateCustomer.run(params)
-      assert {:error, :cpf_already_exists} = CreateCustomer.run(params)
+      assert {:ok, {%Customer{} = customer, %Account{} = account}} = RegisterCustomer.run(params)
+      assert customer.city == "Mirassol"
+      assert customer.country == "BR"
+      assert customer.state == "SP"
+      assert customer.gender == :not_identify
+      assert customer.referral_code == "12345678"
+
+      updated_params =
+        Map.merge(params, %{
+          name: "Foo",
+          city: "Toronto",
+          country: "CA",
+          state: "ON",
+          gender: :others,
+          referral_code: "87654321"
+        })
+
+      assert {:ok, %Customer{} = updated_customer} = RegisterCustomer.run(updated_params)
+      assert updated_customer.city == "Toronto"
+      assert updated_customer.country == "CA"
+      assert updated_customer.state == "ON"
+      assert updated_customer.gender == :others
+      assert updated_customer.referral_code == "87654321"
     end
   end
 
