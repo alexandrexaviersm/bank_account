@@ -1,17 +1,15 @@
-defmodule BankAccount.Customer do
+defmodule BankAccount.Schema.Customer do
   @moduledoc """
   Customer schema
   """
-  use Ecto.Schema
+  use BankAccount.Schema
   import Ecto.Changeset
 
-  alias BankAccount.Account
+  alias BankAccount.Schema.Account
   alias BankAccount.Enums.GenderType
-  alias BankAccount.Lists.Countries
+  alias BankAccount.Enums.Countries
   alias BankAccount.UserEncryption.Security.Utils, as: UserEncryption
   alias Ecto.Changeset
-
-  @primary_key {:id, :binary_id, autogenerate: true}
 
   @type t :: %__MODULE__{
           id: :uuid,
@@ -50,7 +48,7 @@ defmodule BankAccount.Customer do
 
   @input_fields ~w(id city country gender referral_code state unique_salt)a
 
-  def create_changeset(%__MODULE__{} = struct, attrs) do
+  def create_changeset(%__MODULE__{} = struct \\ %__MODULE__{}, attrs) do
     struct
     |> cast(attrs, @input_fields)
     |> validate_required([:id, :unique_salt])
@@ -66,6 +64,25 @@ defmodule BankAccount.Customer do
     |> validate_cpf(attrs)
     |> validate_name(attrs)
     |> put_cpf(attrs)
+    |> put_encrypted_name(attrs)
+    |> put_encrypted_birth_date(attrs)
+    |> put_encrypted_email(attrs)
+  end
+
+  def update_changeset(%__MODULE__{} = struct, attrs) do
+    struct
+    |> cast(attrs, @input_fields)
+    |> validate_length(:city, min: 3, max: 50)
+    |> validate_length(:country, is: 2)
+    |> validate_length(:state, is: 2)
+    |> validate_length(:referral_code, is: 8)
+    |> validate_inclusion(
+      :country,
+      Enum.map(Countries.list_countries(), fn %{code: code} -> code end)
+    )
+    |> validate_inclusion(:gender, GenderType.values())
+    |> validate_cpf(attrs)
+    |> validate_name(attrs)
     |> put_encrypted_name(attrs)
     |> put_encrypted_birth_date(attrs)
     |> put_encrypted_email(attrs)

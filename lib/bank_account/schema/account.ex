@@ -1,11 +1,11 @@
-defmodule BankAccount.Account do
+defmodule BankAccount.Schema.Account do
   @moduledoc """
   Account schema
   """
-  use Ecto.Schema
+  use BankAccount.Schema
   import Ecto.Changeset
 
-  alias BankAccount.Customer
+  alias BankAccount.Schema.Customer
   alias BankAccount.Enums.AccountStatus
 
   @type t :: %__MODULE__{
@@ -19,16 +19,18 @@ defmodule BankAccount.Account do
 
   schema "accounts" do
     field :referral_code_to_be_shared, :string
-    field :status, AccountStatus
+    field :status, AccountStatus, default: :pending
 
     timestamps()
 
     belongs_to :customer, Customer
   end
 
-  def changeset(%__MODULE__{} = struct, attrs) do
+  def update_changeset(%__MODULE__{} = struct, attrs) do
     struct
-    |> cast(attrs, [:status])
-    |> validate_required([:status])
+    |> cast(attrs, [:referral_code_to_be_shared, :status])
+    |> validate_required([:referral_code_to_be_shared, :status])
+    |> validate_length(:referral_code_to_be_shared, is: 8)
+    |> validate_inclusion(:status, AccountStatus.values())
   end
 end
