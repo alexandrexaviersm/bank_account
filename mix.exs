@@ -35,6 +35,7 @@ defmodule BankAccount.MixProject do
     [
       {:phoenix, "~> 1.5.3"},
       {:phoenix_ecto, "~> 4.1"},
+      {:ecto_enum, "~> 1.4.0"},
       {:ecto_sql, "~> 3.4"},
       {:postgrex, ">= 0.0.0"},
       {:phoenix_live_dashboard, "~> 0.2.0"},
@@ -43,6 +44,7 @@ defmodule BankAccount.MixProject do
       {:gettext, "~> 0.11"},
       {:jason, "~> 1.0"},
       {:plug_cowboy, "~> 2.0"},
+      {:cpf, "~> 1.0"},
 
       # dev, test
       {:credo, "~> 1.4", only: [:dev, :test], runtime: false}
