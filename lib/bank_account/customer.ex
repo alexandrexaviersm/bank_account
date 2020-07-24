@@ -64,6 +64,7 @@ defmodule BankAccount.Customer do
     )
     |> validate_inclusion(:gender, GenderType.values())
     |> validate_cpf(attrs)
+    |> validate_name(attrs)
     |> put_encrypted_name(attrs)
     |> put_encrypted_birth_date(attrs)
     |> put_encrypted_cpf(attrs)
@@ -86,6 +87,20 @@ defmodule BankAccount.Customer do
     add_error(changeset, :cpf, "can't be blank")
   end
 
+  defp validate_name(%Changeset{} = changeset, %{name: name}) when is_binary(name) do
+    cond do
+      byte_size(name) < 3 -> add_error(changeset, :name, "should be at least 3 character(s)")
+      byte_size(name) > 100 -> add_error(changeset, :name, "should be at most 100 character(s)")
+      name -> changeset
+    end
+  end
+
+  defp validate_name(%Changeset{} = changeset, %{name: _name}) do
+    add_error(changeset, :name, "is invalid")
+  end
+
+  defp validate_name(%Changeset{} = changeset, _), do: changeset
+
   defp put_encrypted_name(
          %Changeset{valid?: true, changes: %{id: id, unique_salt: salt}} = changeset,
          %{name: name, cpf: cpf}
@@ -105,7 +120,7 @@ defmodule BankAccount.Customer do
          } = changeset,
          %{birth_date: birth_date, cpf: cpf}
        )
-       when is_map(birth_date) do
+       when is_binary(birth_date) do
     key = UserEncryption.generate_secret_key(id, cpf, salt)
 
     put_change(changeset, :encrypted_birth_date, UserEncryption.encrypt(birth_date, key))
