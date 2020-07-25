@@ -7,4 +7,8 @@ defmodule BankAccount.Enums.AccountStatus do
   def values do
     __MODULE__.__enum_map__()
   end
+
+  def get_from_key(key) do
+    Map.get(values(), key)
+  end
 end
