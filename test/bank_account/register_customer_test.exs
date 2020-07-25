@@ -11,7 +11,7 @@ defmodule BankAccount.RegisterCustomerTest do
     test "returns structs when the params are valid", %{params: %{cpf: cpf} = params} do
       assert {:ok, {%Customer{} = customer, %Account{} = account}} = RegisterCustomer.run(params)
 
-      assert customer.city == "Mirassol"
+      assert customer.city == "São Paulo"
       assert customer.country == "BR"
       assert customer.state == "SP"
       assert customer.gender == :not_identify
@@ -164,25 +164,22 @@ defmodule BankAccount.RegisterCustomerTest do
       assert {:ok, {%Customer{} = customer, %Account{} = account}} = RegisterCustomer.run(params)
     end
 
-    # TODO: don't update a completed customer
+    # don't update a completed customer
     test "returns a updated customer if the informed cpf is already registered in database", %{
       params: params
     } do
-      assert {:ok, {%Customer{} = customer, %Account{} = account}} = RegisterCustomer.run(params)
-      assert customer.city == "Mirassol"
-      assert customer.country == "BR"
-      assert customer.state == "SP"
-      assert customer.gender == :not_identify
-      assert customer.referral_code == "12345678"
+      {:ok, {%Customer{} = customer, %Account{} = _account}} = RegisterCustomer.run(params)
 
       updated_params =
         Map.merge(params, %{
-          name: "Foo",
+          name: "Foo Updated",
           city: "Toronto",
           country: "CA",
           state: "ON",
           gender: :others,
-          referral_code: "87654321"
+          referral_code: "87654321",
+          email: "bar@gmail.com",
+          birth_date: "2000-01-01"
         })
 
       assert {:ok, {%Customer{} = updated_customer, %Account{} = account}} =
@@ -193,6 +190,15 @@ defmodule BankAccount.RegisterCustomerTest do
       assert updated_customer.state == "ON"
       assert updated_customer.gender == :others
       assert updated_customer.referral_code == "87654321"
+      assert updated_customer.cpf_hash == customer.cpf_hash
+      assert updated_customer.encrypted_name
+      assert updated_customer.encrypted_email
+
+      assert updated_customer.encrypted_birth_date
+
+      refute updated_customer.encrypted_name == customer.encrypted_name
+      refute updated_customer.encrypted_email == customer.encrypted_email
+      refute updated_customer.encrypted_birth_date == customer.encrypted_birth_date
     end
   end
 
@@ -205,7 +211,7 @@ defmodule BankAccount.RegisterCustomerTest do
         email: "foo@bar.com",
         cpf: cpf,
         birth_date: "1990-01-01",
-        city: "Mirassol",
+        city: "São Paulo",
         country: "BR",
         state: "SP",
         gender: "not_identify",

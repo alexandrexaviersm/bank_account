@@ -18,19 +18,20 @@ defmodule BankAccount.RegisterCustomer do
   # # O sistema informa uma mensagem de sucesso, retorna o stautus pendent
 
   def run(params) do
-    customer =
-      Repo.all(Customer)
-      |> Enum.find(fn customer ->
-        Bcrypt.verify_pass(params[:cpf], customer.cpf_hash)
-      end)
-
-    case customer do
+    case find_customer_by_cpf(params) do
       %Customer{} = customer ->
         update_customer(customer, params)
 
       nil ->
         create_customer(params)
     end
+  end
+
+  def find_customer_by_cpf(params) do
+    Repo.all(Customer)
+    |> Enum.find(fn customer ->
+      Bcrypt.verify_pass(params[:cpf], customer.cpf_hash)
+    end)
   end
 
   defp update_customer(customer, params) do

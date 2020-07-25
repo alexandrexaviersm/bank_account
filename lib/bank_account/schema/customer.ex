@@ -83,9 +83,9 @@ defmodule BankAccount.Schema.Customer do
     |> validate_inclusion(:gender, GenderType.values())
     |> validate_cpf(attrs)
     |> validate_name(attrs)
-    |> put_encrypted_name(attrs)
-    |> put_encrypted_birth_date(attrs)
-    |> put_encrypted_email(attrs)
+    |> update_encrypted_name(attrs)
+    |> update_encrypted_birth_date(attrs)
+    |> update_encrypted_email(attrs)
   end
 
   defp validate_cpf(%Changeset{} = changeset, %{cpf: cpf}) when is_atom(cpf) do
@@ -129,6 +129,18 @@ defmodule BankAccount.Schema.Customer do
 
   defp put_encrypted_name(%Changeset{} = changeset, _attrs), do: changeset
 
+  defp update_encrypted_name(
+         %Changeset{valid?: true, data: %{id: id, unique_salt: salt}} = changeset,
+         %{name: name, cpf: cpf}
+       )
+       when is_binary(name) do
+    key = UserEncryption.generate_secret_key(id, cpf, salt)
+
+    put_change(changeset, :encrypted_name, UserEncryption.encrypt(name, key))
+  end
+
+  defp update_encrypted_name(%Changeset{} = changeset, _attrs), do: changeset
+
   defp put_encrypted_birth_date(
          %Changeset{
            valid?: true,
@@ -143,6 +155,21 @@ defmodule BankAccount.Schema.Customer do
   end
 
   defp put_encrypted_birth_date(%Changeset{} = changeset, _attrs), do: changeset
+
+  defp update_encrypted_birth_date(
+         %Changeset{
+           valid?: true,
+           data: %{id: id, unique_salt: salt}
+         } = changeset,
+         %{birth_date: birth_date, cpf: cpf}
+       )
+       when is_binary(birth_date) do
+    key = UserEncryption.generate_secret_key(id, cpf, salt)
+
+    put_change(changeset, :encrypted_birth_date, UserEncryption.encrypt(birth_date, key))
+  end
+
+  defp update_encrypted_birth_date(%Changeset{} = changeset, _attrs), do: changeset
 
   defp put_cpf(
          %Changeset{valid?: true} = changeset,
@@ -165,4 +192,16 @@ defmodule BankAccount.Schema.Customer do
   end
 
   defp put_encrypted_email(%Changeset{} = changeset, _attrs), do: changeset
+
+  defp update_encrypted_email(
+         %Changeset{valid?: true, data: %{id: id, unique_salt: salt}} = changeset,
+         %{email: email, cpf: cpf}
+       )
+       when is_binary(email) do
+    key = UserEncryption.generate_secret_key(id, cpf, salt)
+
+    put_change(changeset, :encrypted_email, UserEncryption.encrypt(email, key))
+  end
+
+  defp update_encrypted_email(%Changeset{} = changeset, _attrs), do: changeset
 end
