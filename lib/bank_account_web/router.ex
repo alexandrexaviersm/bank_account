@@ -5,8 +5,10 @@ defmodule BankAccountWeb.Router do
     plug :accepts, ["json"]
   end
 
-  scope "/api", BankAccountWeb do
+  scope "/api/v1", BankAccountWeb do
     pipe_through :api
+
+    post("/customer/upsert", RegisterCustomerController, :create)
   end
 
   # Enables LiveDashboard only for development
