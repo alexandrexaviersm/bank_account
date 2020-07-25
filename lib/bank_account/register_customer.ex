@@ -4,6 +4,7 @@ defmodule BankAccount.RegisterCustomer do
   """
 
   alias BankAccount.AccountOpening
+  alias BankAccount.CustomerRepo
   alias BankAccount.Repo
   alias BankAccount.Schema.Customer
   alias BankAccount.UserEncryption.Security.Utils, as: UserEncryption
@@ -18,20 +19,13 @@ defmodule BankAccount.RegisterCustomer do
   # # O sistema informa uma mensagem de sucesso, retorna o stautus pendent
 
   def run(params) do
-    case find_customer_by_cpf(params) do
+    case CustomerRepo.find_customer_by_cpf(params[:cpf]) do
       %Customer{} = customer ->
         update_customer(customer, params)
 
       nil ->
         create_customer(params)
     end
-  end
-
-  def find_customer_by_cpf(params) do
-    Repo.all(Customer)
-    |> Enum.find(fn customer ->
-      Bcrypt.verify_pass(params[:cpf], customer.cpf_hash)
-    end)
   end
 
   defp update_customer(customer, params) do
