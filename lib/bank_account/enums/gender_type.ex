@@ -6,6 +6,7 @@ defmodule BankAccount.Enums.GenderType do
 
   def values do
     __MODULE__.__enum_map__()
+    |> Enum.reduce(%{}, fn value, acc -> Map.put(acc, value, Atom.to_string(value)) end)
   end
 
   def get_from_key(key) do

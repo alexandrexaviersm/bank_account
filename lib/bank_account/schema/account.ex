@@ -31,6 +31,6 @@ defmodule BankAccount.Schema.Account do
     |> cast(attrs, [:referral_code_to_be_shared, :status])
     |> validate_required([:referral_code_to_be_shared, :status])
     |> validate_length(:referral_code_to_be_shared, is: 8)
-    |> validate_inclusion(:status, AccountStatus.values())
+    |> validate_inclusion(:status, AccountStatus.values() |> Map.keys())
   end
 end

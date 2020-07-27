@@ -6,7 +6,9 @@ defmodule BankAccount.AccountOpening do
   alias BankAccount.Schema.{Account, Customer}
   alias BankAccount.UserEncryption.Security.Utils
 
-  def run(customer, account) do
+  def run(customer) do
+    %{account: %Account{} = account} = Repo.preload(customer, :account)
+
     if all_data_is_properly_filled_before_opening_account?(customer) do
       completes_the_process_of_opening_an_account(account)
     else
@@ -14,11 +16,11 @@ defmodule BankAccount.AccountOpening do
     end
   end
 
+  # check nil "" empty string values
   defp all_data_is_properly_filled_before_opening_account?(%Customer{
          city: city,
          country: country,
          encrypted_birth_date: encrypted_birth_date,
-         cpf_hash: cpf_hash,
          encrypted_email: encrypted_email,
          encrypted_name: encrypted_name,
          gender: gender,
@@ -26,8 +28,8 @@ defmodule BankAccount.AccountOpening do
          state: state
        })
        when is_binary(city) and is_binary(country) and is_binary(encrypted_birth_date) and
-              is_binary(cpf_hash) and is_binary(encrypted_email) and is_binary(encrypted_name) and
-              is_atom(gender) and is_binary(referral_code) and is_binary(state) do
+              is_binary(encrypted_email) and is_binary(encrypted_name) and
+              is_atom(gender) and gender != nil and is_binary(referral_code) and is_binary(state) do
     true
   end
 

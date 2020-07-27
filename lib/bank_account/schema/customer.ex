@@ -5,6 +5,7 @@ defmodule BankAccount.Schema.Customer do
   use BankAccount.Schema
   import Ecto.Changeset
 
+  alias BankAccount.CustomerRepo
   alias BankAccount.Enums.Countries
   alias BankAccount.Enums.GenderType
   alias BankAccount.Schema.Account
@@ -60,13 +61,16 @@ defmodule BankAccount.Schema.Customer do
       :country,
       Enum.map(Countries.list_countries(), fn %{code: code} -> code end)
     )
-    |> validate_inclusion(:gender, GenderType.values())
+    |> validate_inclusion(:gender, GenderType.values() |> Map.keys())
     |> validate_cpf(attrs)
     |> validate_name(attrs)
+    |> validate_email(attrs)
+    |> validate_existing_refferal_code()
     |> put_cpf(attrs)
     |> put_encrypted_name(attrs)
     |> put_encrypted_birth_date(attrs)
     |> put_encrypted_email(attrs)
+    |> put_encrypted_name_to_be_shared(attrs)
   end
 
   def update_changeset(%__MODULE__{} = struct, attrs) do
@@ -80,12 +84,20 @@ defmodule BankAccount.Schema.Customer do
       :country,
       Enum.map(Countries.list_countries(), fn %{code: code} -> code end)
     )
-    |> validate_inclusion(:gender, GenderType.values())
+    |> validate_inclusion(:gender, GenderType.values() |> Map.keys())
     |> validate_cpf(attrs)
     |> validate_name(attrs)
+    |> validate_email(attrs)
+    |> validate_existing_refferal_code()
     |> update_encrypted_name(attrs)
     |> update_encrypted_birth_date(attrs)
     |> update_encrypted_email(attrs)
+    |> update_encrypted_name_to_be_shared(attrs)
+  end
+
+  def update_encrypted_name_to_be_shared_changeset(%__MODULE__{} = struct, attrs) do
+    struct
+    |> cast(attrs, [:encrypted_name_to_be_shared])
   end
 
   defp validate_cpf(%Changeset{} = changeset, %{cpf: cpf}) when is_atom(cpf) do
@@ -117,6 +129,44 @@ defmodule BankAccount.Schema.Customer do
 
   defp validate_name(%Changeset{} = changeset, _), do: changeset
 
+  defp validate_email(%Changeset{} = changeset, %{email: email}) when is_binary(email) do
+    case String.match?(
+           email,
+           ~r/^[\w.!#$%&’*+\-\/=?\^`{|}~]+@[a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)*$/i
+         ) do
+      true -> changeset
+      false -> add_error(changeset, :email, "is invalid")
+    end
+  end
+
+  defp validate_email(%Changeset{} = changeset, %{email: _email}) do
+    add_error(changeset, :email, "is invalid")
+  end
+
+  defp validate_email(%Changeset{} = changeset, _), do: changeset
+
+  defp validate_existing_refferal_code(
+         %Changeset{
+           valid?: true,
+           changes: %{referral_code: referral_code}
+         } = changeset
+       )
+       when is_binary(referral_code) do
+    case CustomerRepo.referral_code_exists?(referral_code) do
+      true ->
+        changeset
+
+      false ->
+        add_error(
+          changeset,
+          :referral_code,
+          "you need to provide an existing referral code"
+        )
+    end
+  end
+
+  defp validate_existing_refferal_code(%Changeset{} = changeset), do: changeset
+
   defp put_encrypted_name(
          %Changeset{valid?: true, changes: %{id: id, unique_salt: salt}} = changeset,
          %{name: name, cpf: cpf}
@@ -136,7 +186,23 @@ defmodule BankAccount.Schema.Customer do
        when is_binary(name) do
     key = UserEncryption.generate_secret_key(id, cpf, salt)
 
-    put_change(changeset, :encrypted_name, UserEncryption.encrypt(name, key))
+    changeset = put_change(changeset, :encrypted_name, UserEncryption.encrypt(name, key))
+
+    {:ok, customer} = BankAccount.CustomerRepo.get_customer(id)
+
+    case customer.referral_code do
+      nil ->
+        changeset
+
+      referral_code ->
+        key = UserEncryption.generate_secret_key(id, referral_code, salt)
+
+        put_change(
+          changeset,
+          :encrypted_name_to_be_shared,
+          UserEncryption.encrypt(name, key)
+        )
+    end
   end
 
   defp update_encrypted_name(%Changeset{} = changeset, _attrs), do: changeset
@@ -204,4 +270,70 @@ defmodule BankAccount.Schema.Customer do
   end
 
   defp update_encrypted_email(%Changeset{} = changeset, _attrs), do: changeset
+
+  defp put_encrypted_name_to_be_shared(
+         %Changeset{
+           valid?: true,
+           changes: %{id: id, unique_salt: salt, referral_code: referral_code}
+         } = changeset,
+         %{name: name}
+       )
+       when is_binary(name) do
+    key = UserEncryption.generate_secret_key(id, referral_code, salt)
+
+    put_change(
+      changeset,
+      :encrypted_name_to_be_shared,
+      UserEncryption.encrypt(name, key)
+    )
+  end
+
+  defp put_encrypted_name_to_be_shared(%Changeset{} = changeset, _attrs), do: changeset
+
+  defp update_encrypted_name_to_be_shared(
+         %Changeset{
+           valid?: true,
+           data: %{id: id, unique_salt: salt, referral_code: referral_code}
+         } = changeset,
+         %{name: name}
+       )
+       when is_binary(referral_code) and is_binary(name) do
+    key = UserEncryption.generate_secret_key(id, referral_code, salt)
+
+    put_change(
+      changeset,
+      :encrypted_name_to_be_shared,
+      UserEncryption.encrypt(name, key)
+    )
+  end
+
+  defp update_encrypted_name_to_be_shared(
+         %Changeset{
+           valid?: true,
+           data: %{id: id, unique_salt: salt, referral_code: referral_code}
+         } = changeset,
+         %{cpf: cpf}
+       )
+       when is_binary(referral_code) do
+    {:ok, customer} = BankAccount.CustomerRepo.get_customer(id)
+
+    case customer.encrypted_name do
+      nil ->
+        changeset
+
+      encrypted_name ->
+        key = UserEncryption.generate_secret_key(id, cpf, salt)
+        name = UserEncryption.decrypt(encrypted_name, key)
+
+        key = UserEncryption.generate_secret_key(id, referral_code, salt)
+
+        put_change(
+          changeset,
+          :encrypted_name_to_be_shared,
+          UserEncryption.encrypt(name, key)
+        )
+    end
+  end
+
+  defp update_encrypted_name_to_be_shared(%Changeset{} = changeset, _attrs), do: changeset
 end
