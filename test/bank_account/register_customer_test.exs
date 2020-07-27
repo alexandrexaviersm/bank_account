@@ -1,13 +1,14 @@
 defmodule BankAccount.RegisterCustomerTest do
   use BankAccount.DataCase, async: true
 
-  alias BankAccount.RegisterCustomer
+  alias BankAccount.{Factories, Factory, RegisterCustomer}
   alias BankAccount.Schema.{Account, Customer}
   alias Ecto.Changeset
 
-  setup :create_customer_params
+  setup :create_customer
+  setup :customer_params
 
-  describe "run/1" do
+  describe "create_customer" do
     test "returns structs when the params are valid", %{params: %{cpf: cpf} = params} do
       assert {:ok, {%Customer{} = customer, %Account{} = account}} = RegisterCustomer.run(params)
 
@@ -164,10 +165,11 @@ defmodule BankAccount.RegisterCustomerTest do
       assert {:ok, {%Customer{} = customer, %Account{} = account}} = RegisterCustomer.run(params)
     end
 
-    # don't update a completed customer
     test "returns a updated customer if the informed cpf is already registered in database", %{
       params: params
     } do
+      params = Map.drop(params, [:birth_date])
+
       {:ok, {%Customer{} = customer, %Account{} = _account}} = RegisterCustomer.run(params)
 
       updated_params =
@@ -177,9 +179,8 @@ defmodule BankAccount.RegisterCustomerTest do
           country: "CA",
           state: "ON",
           gender: :others,
-          referral_code: "87654321",
-          email: "bar@gmail.com",
-          birth_date: "2000-01-01"
+          referral_code: "12345678",
+          email: "bar@gmail.com"
         })
 
       assert {:ok, {%Customer{} = updated_customer, %Account{} = account}} =
@@ -189,20 +190,32 @@ defmodule BankAccount.RegisterCustomerTest do
       assert updated_customer.country == "CA"
       assert updated_customer.state == "ON"
       assert updated_customer.gender == :others
-      assert updated_customer.referral_code == "87654321"
+      assert updated_customer.referral_code == "12345678"
       assert updated_customer.cpf_hash == customer.cpf_hash
       assert updated_customer.encrypted_name
       assert updated_customer.encrypted_email
 
-      assert updated_customer.encrypted_birth_date
-
       refute updated_customer.encrypted_name == customer.encrypted_name
       refute updated_customer.encrypted_email == customer.encrypted_email
-      refute updated_customer.encrypted_birth_date == customer.encrypted_birth_date
     end
   end
 
-  defp create_customer_params(_context) do
+  describe "update_customer" do
+  end
+
+  defp create_customer(_context) do
+    customer =
+      Factories.customer()
+      |> Factory.insert!()
+
+    [customer_id: customer.id, referral_code_to_be_shared: "12345678"]
+    |> Factories.account()
+    |> Factory.insert!()
+
+    []
+  end
+
+  defp customer_params(_context) do
     cpf = CPF.generate() |> CPF.format()
 
     [

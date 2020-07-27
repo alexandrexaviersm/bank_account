@@ -3,7 +3,7 @@ defmodule BankAccount.Factories do
     Test Factories
   """
 
-  alias BankAccount.Enums.{AccountStatus, GenderType}
+  alias BankAccount.Enums.AccountStatus
   alias BankAccount.Schema.{Account, Customer}
   alias Ecto.UUID
 
@@ -26,15 +26,9 @@ defmodule BankAccount.Factories do
 
     attrs =
       [
-        name: "Foo",
-        email: "foo@bar.com",
-        cpf: cpf,
-        birth_date: "1990-01-01",
-        city: "São Paulo",
-        country: "BR",
-        state: "SP",
-        gender: GenderType.get_from_key(:not_identify),
-        referral_code: "12345678"
+        cpf_hash: cpf,
+        referral_code: "12345678",
+        unique_salt: "gxkjIEU2BXTjzQCAzVJh4g=="
       ]
       |> Keyword.merge(attrs)
 
