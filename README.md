@@ -13,6 +13,7 @@ To start your Phoenix server:
   Ao rodar o Setup da aplicação, um seed é executado para criar um usuário DEMO. Esse usuário possui um "referral_code": "12345678" que deverá ser utilizado pelo Primeiro usuário que irá se cadastrar na aplicação.
   
   Com a aplicação rodando, utilize o POSTMAN para fazer uma requisição PATCH na rota:
+  
   (antes é necessário configurar o HEADER -> `Content-Type: application/json` )
   
   `PATCH localhost:4000/api/v1/customers/update`
@@ -232,6 +233,7 @@ Tabelas
       :customer_id, references(:customers, on_delete: :nothing, type: :uuid)
       timestamps()
 
-# Contribua com a aplicação
+# Contribua com o Projeto
 Nenhuma aplicação fica pronta de primeira, não é mesmo ?
-Então abri algumas Issues aqui no github
+Então abri algumas Issues aqui no github https://github.com/alexandrexaviersm/bank_account/issues indicando os caminhos que a aplicação precisa evoluir.
+Aceitarei Pull Requests de quem quiser contribuir com a aplicação 
