@@ -10,14 +10,15 @@ To start your Phoenix server:
   * Start Phoenix endpoint with `mix phx.server`
   
 # Passo a passo para testar a API:
-  Ao rodar o Setup da aplicação, um seed é rodado para criar um usuário DEMO. Esse usuário possui um "referral_code": "12345678" que deverá ser utilizado pelo Primeiro Costumer que quiser se cadastrar na aplicação.
+  Ao rodar o Setup da aplicação, um seed é executado para criar um usuário DEMO. Esse usuário possui um "referral_code": "12345678" que deverá ser utilizado pelo Primeiro usuário que irá se cadastrar na aplicação.
   
   Com a aplicação rodando, utilize o POSTMAN para fazer uma requisição PATCH na rota:
-  (antes é necessário configurar o HEADER -> Content-Type: application/json )
+  (antes é necessário configurar o HEADER -> `Content-Type: application/json` )
   
-  localhost:4000/api/v1/customers/update
+  `PATCH localhost:4000/api/v1/customers/update`
   
   com o body: 
+```
 {
     "cpf": "411.562.990-80",
     "name": "Foo Bar",
@@ -29,9 +30,10 @@ To start your Phoenix server:
     "gender": "not_identify",
     "referral_code": "12345678"
 }
+```
 
 Pronto ! Nesse momento todos os dados do usuário já foram cadastrados e sua conta está com o status Complete. Repare na resposta do servidor:
-
+```
 {
     "data": {
         "referral_code_to_be_shared": "LsaXdM2L",
@@ -39,34 +41,36 @@ Pronto ! Nesse momento todos os dados do usuário já foram cadastrados e sua co
     },
     "status": "ok"
 }
+```
 
-Compartilhe o referral_code_to_be_shared com outros usuários possam se cadastrar no sistema com o seu referral_code.
+Compartilhe o referral_code_to_be_shared com outros usuários para que possam se cadastrar no sistema.
 Nessa requisição você também recebeu um JWT Token que deverá ser utilizado caso queira ver quais os usuários que se cadastraram no sistema com o seu referral_code
 
-Para isso, verifique o Header da resposta da requisição, ache o campo jwt_token e copie o seu valor:
+Para isso, verifique o Header na resposta da requisição que você utilizaou para se cadastrar, ache o campo jwt_token e copie o seu valor:
 
-Depois faça uma requisição POST na rota /customers/update, mas antes, coloque um header com o valor do TOKEN que você copiou:
+Depois faça uma requisição POST na rota `indications`, mas antes, configure o Authorization com o valor do TOKEN que você copiou:
 
 Verifique a coluna Authorization no POSTMAN e selecione a Oçpão 
--> Bearer Token 
-em seguida cole o seu JWT TOKEN como valor.
+-> `Bearer Token` 
+em seguida cole o seu JWT TOKEN como valor que você copiou anteriormente e agora sim faça a requisição POST na rota.
 
-localhost:4000/api/v1/customers/update
+`POST localhost:4000/api/v1/customers/indications`
 
 RESPOTA:
-
+```
 {
     "data": [],
     "status": "ok"
 }
-
-Significa que nenhum usuário se cadastrou no sistema utilizando o seu referral_code. Assim que eles se cadastrarem, os nomes e IDS deles apareceram dentro da lista data.
+```
+Significa que nenhum usuário se cadastrou no sistema utilizando o seu referral_code. Assim que eles se cadastrarem, os nomes e IDS deles apareceram dentro da lista.
 
 OBS:
 O CPF pode ser digitado no formato "111.222.333-44" ou "11122233344"
 O sistema só aceita CPF válidos (fique a vontade para gerar alguns aleatórios para testar a aplicação)
-Campo name: de 3 a 100 caracteres, caso tente algo diferente, o erro será exibido 
 
+Campo name: de 3 a 100 caracteres, caso tente algo diferente, o erro será exibido 
+```
 {
     "errors": {
         "name": [
@@ -75,15 +79,87 @@ Campo name: de 3 a 100 caracteres, caso tente algo diferente, o erro será exibi
     },
     "status": "unprocessable entity"
 }
-
+```
 Outras validações:
 email: REGEX está validando o formato do email
+
 country: Somente 2 dígitos (ex: BR ou US). Existe uma lista que verifica se o código do país existe. 
+
 state: Somente 2 dígitos
+
 referral_code: Precisa entrar com algum código que já foi gerado para outro usuário. Caso você seja o primeiro usuário, entre com o código DEMO "12345678"
 
+CAMPO GENDER é um ENUM, aceita os seguintes valores: `woman, man, non_binary, others, not_identify`
 
+Não é possível alterar os dados do customer depois todos os dados forem informados e a conta ser setata para o status: complete, caso tentar, a seguinte mensagem será exibida
+
+```
+{
+    "detail": "Account already completed!",
+    "referral_code_to_be_shared": "ztwBnf8/",
+    "status": "ok"
+}
+```
+
+Visualização de indicações: O sistema informa uma mensagem indicando que a funcionalidade é
+destinada às contas com status completo
+
+```
+{
+    "detail": "Account must be completed!",
+    "status": "unprocessable entity"
+}
+```
+
+O usuário também pode se cadastrar aos poucos, informando uma informação de cada vez, porém é necessário sempre informar o CPF:
+
+```
+PATCH  localhost:4000/api/v1/customers/update
+
+{
+    "cpf": "86543385049",
+    "email": "foo@bar.com"
+}
+
+response informando que a conta está PENDENTE e ainda não há um referral_code criado
+
+{
+    "data": {
+        "referral_code_to_be_shared": null,
+        "status": "pending"
+    },
+    "status": "ok"
+}
+
+Segunda requisição informando os dados restantes, menos o email que já havia sido informado
+
+PATCH localhost:4000/api/v1/customers/update
+{
+    "cpf": "86543385049",
+    "name": "Foo Bar",
+    "birth_date": "1994-01-01",
+    "country": "BR",
+    "state": "SP",
+    "city": "Sao Paulo",
+    "gender": "not_identify",
+    "referral_code": "12345678"
+}
+
+RESPONSE -> Agora sim, os outros dados foram informados, a Conta ficou no status COMPLETE e o referra_code de 8 dígitos foi gerado
+
+{
+    "data": {
+        "referral_code_to_be_shared": "TenasQ+z",
+        "status": "complete"
+    },
+    "status": "ok"
+}
+```
  
+caso queira resetar a aplicação
+`mix ecto.drop && mix setup`
+
+
 
 
 # Racional por trás da modelagem da solução:
@@ -156,3 +232,6 @@ Tabelas
       :customer_id, references(:customers, on_delete: :nothing, type: :uuid)
       timestamps()
 
+# Contribua com a aplicação
+Nenhuma aplicação fica pronta de primeira, não é mesmo ?
+Então abri algumas Issues aqui no github
