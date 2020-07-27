@@ -1,4 +1,4 @@
-defmodule BankAccountWeb.RegisterCustomerView do
+defmodule BankAccountWeb.Customer.RegisterView do
   use BankAccountWeb, :view
 
   def render("register_customer.json", %{account: account}) do
